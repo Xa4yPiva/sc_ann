@@ -85,7 +85,7 @@ lenPowMax = floor(log2(lenSignal));
 lenFrameMin = 2 ^ lenPowMin;
 lenFrameMax = 2 ^ lenPowMax;
 thresholds.ampl = 1;
-expNum = 10000;
+expNum = 1000;
 % lenFrame = zeros(1, sigsNum * expNum);
 lenFrame = 2^12;
 idxF = 1;
@@ -94,7 +94,8 @@ cyclesNum = sigsNum * expNum;
 disp("Computing training set ...");
 tic
 for j = 1 : expNum
-    snr = rand() * 30 - 15;
+%     snr = rand() * 30 - 15;
+    snr = randi([-15, 15]);
     pos = randi([0, lenEnv - lenFrame-1]);
     for i = 1 : sigsNum
 %         lenFrame(idxF) = 2 ^ (round(rand() * (lenPowMax - lenPowMin) + lenPowMin));
@@ -121,11 +122,31 @@ disp('... done.')
 kfs = [ts(:).kf];
 ts_inputs = [abs([[kfs.gammaMax]; [kfs.sigmaDP]; [kfs.sigmaAP]]); [kfs.P]];
 ts_targets = repmat(diag(ones(1, sigsNum)), 1, expNum);
+ts_classes = repmat(modNames, 1, expNum);
 
+%% Train KNN classifier
+% mdl = fitcknn(ts_inputs',ts_classes','NumNeighbors',5,'Standardize',1)
 
+%%
+close all;
+paramsNum = size(ts_inputs, 1);
+paramNames = ["GammaMax", "SigmaDP", "SigmaAP", "P"];
+for i = 1 : paramsNum
+    figure('NumberTitle', 'off', 'Name', paramNames(i));
+    set(gcf, 'color', 'w'); set(groot, 'DefaultAxesFontSize', 18);
+    for j = 1 : sigsNum
+        param = ts_inputs(i, j:sigsNum:end); 
+%         plot(ts_inputs(i, j:sigsNum:end), 'linewidth', 2); hold on;
+        histogram(param, 50, 'Normalization', 'probability'); hold on;
+    end
+    grid on;
+    title(paramNames(i));
+    legend(modNames);
+end
 
-
-
+% close all;
+% p1 = ts_inputs(1,1:sigsNum:end);
+% histogram(p1, 50, 'Normalization', 'probability');
 
 
 

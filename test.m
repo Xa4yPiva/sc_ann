@@ -67,34 +67,40 @@ envelopes = (resample(envelopes', p, q))';
 % specEnv = fftshift(abs(fft(envelopes, N, 2)) / (N/2), 2);
 
 %% Probabilities of Right Decision
-% load('network1.mat');
-% load('network2_lf8k.mat');
-% load('network4_3-7-10-4_logsig_lf8k.mat');
-% load('network5_3-7-10-7-4_tansig_lin_lf8k.mat');
-% load('network6_3-7-10-7-6_tansig_lf8k.mat');
-% load('network7_3-7-10-7-3_tansig_lf8k.mat');
-load('net4-7-5.mat');
-net = net4_7_5;
+% load('net4-7-5.mat');
+% load('net4-9-5.mat');
+load('net4-11-5.mat');
+% load('net4-13-5.mat');
+% load('net4-7-9-7-5.mat');
+% load('net4-7-11-11-7-5.mat');
+load('mdl');
+net = net4_11_5;
 thresholds.ampl = 1;
-snr = -15 : 2 : 10;
+snr = -15 : 2 : 5;
 expNum = 1e3;
 lenFrame = 2^12;
-% [pRight, pro] = ProbRightDecision(net, envelopes, thresholds, modNames, snr, expNum, lenFrame);
+[pANN, proANN] = ProbRightDecision(net, envelopes, thresholds, modNames, snr, expNum, lenFrame);
+[pKNN, proKNN] = ProbRightDecisionKNN(mdl, envelopes, thresholds, modNames, snr, expNum, lenFrame);
 
 %% Plot pRight
 close all;
 tNames = [];
-PlotProbRight([6,7], pRight, pro, snr, mType, modNames, tNames);
+% PlotProbRight([6,7], pANN, proANN, snr, mType, modNames, tNames);
+% PlotProbRight([6,7], pKNN, proKNN, snr, mType, modNames, tNames);
+return;
 
 %% Plot pErr
-pErr = 1 - pRight;
-peo = 1 - pro;
-PlotProbError([8,9], pErr, peo, snr, mType, modNames, tNames);
+pErrANN = 1 - pANN;
+peoANN = 1 - proANN;
+pErrKNN = 1 - pKNN;
+peoKNN = 1 - proKNN;
+% PlotProbError([8,9], pErrANN, peoANN, snr, mType, modNames, tNames);
+% PlotProbError([8,9], pErrKNN, peoKNN, snr, mType, modNames, tNames);
 
 %% Plot Probabilities Thresholds vs ANN
 close all;
-pANN = pRight;
 snrANN = snr;
+snrKNN = snr;
 ld = load('../sc_amra/am_dsb_lsb_usb_fm.mat', 'pRight', 'snr', 'decRight');
 pT = ld.pRight;
 snrT = ld.snr;
@@ -106,20 +112,24 @@ for i = 1 : sigsNum
     hold on;
 end
 for i = 1 : sigsNum
+%     plot(snrANN, pANN(i,:), 'marker', mType(i), 'markersize', 10, 'linewidth', 2, 'color', colors(i,:));
+    plot(snrKNN, pKNN(i,:), ':', 'marker', mType(i), 'linewidth', 2, 'color', colors(i,:));
+    hold on;
+end
+for i = 1 : sigsNum
     m = find(ld.decRight == modNames(i));
 %     plot(snrT, pT(m,:), '--', 'marker', mType(i), 'markersize', 10, 'linewidth', 2, 'color', colors(i,:));
     plot(snrT, pT(m,:), '--', 'marker', mType(i), 'linewidth', 2, 'color', colors(i,:));
     hold on;
 end
-mods = [strcat(modNames, "-ANN"), strcat(modNames, "-Thresholds")];
+mods = [strcat(modNames, " (ANN)"), strcat(modNames, " (KNN)"), strcat(modNames, " (Decision Tree)")];
 grid on;
-title('Thresholds vs ANN'); xlabel('SNR, dB'); ylabel('Probability of right decision');
+title('Thresholds vs ANN vs KNN'); xlabel('SNR, dB'); ylabel('Probability of right decision');
 legend(mods, 'location', 'southeast'); legend('show');
 set(gcf, 'color', 'w'); set(groot, 'DefaultAxesFontSize', 18);
 
 %% Plot Probabilities of error T vs ANN
 close all;
-pErrANN = 1 - pRight;
 snrANN = snr;
 ld = load('../sc_amra/am_dsb_lsb_usb_fm.mat', 'pRight', 'snr', 'decRight');
 pErrT = 1 - ld.pRight;
@@ -139,4 +149,46 @@ mods = [strcat(modNames, "-ANN"), strcat(modNames, "-Thresholds")];
 grid on;
 title('Thresholds vs ANN'); xlabel('SNR, dB'); ylabel('Probability of error');
 legend(mods, 'location', 'northeast'); legend('show');
+set(gcf, 'color', 'w'); set(groot, 'DefaultAxesFontSize', 18);
+
+%%
+close all;
+snrANN = snr;
+snrKNN = snr;
+ld = load('../sc_amra/am_dsb_lsb_usb_fm.mat', 'pro', 'snr', 'decRight');
+proT = ld.pro;
+snrT = ld.snr;
+colors = lines(3);
+figure(9);
+plot(snrANN, proANN, 'marker', mType(1), 'linewidth', 2);
+hold on;
+plot(snrKNN, proKNN, 'marker', mType(2), 'linewidth', 2);
+hold on;
+plot(snrT, proT, 'marker', mType(3), 'linewidth', 2);
+hold on;
+mods = ["ANN", "KNN", "Decision Tree"];
+grid on;
+title('Decision Tree vs ANN vs KNN'); xlabel('SNR, dB'); ylabel('Overall probability of right decision');
+legend(mods, 'location', 'southeast'); legend('show');
+set(gcf, 'color', 'w'); set(groot, 'DefaultAxesFontSize', 18);
+
+%%
+close all;
+snrANN = snr;
+snrKNN = snr;
+ld = load('../sc_amra/am_dsb_lsb_usb_fm.mat', 'pro', 'snr', 'decRight');
+peoT = 1 - ld.pro;
+snrT = ld.snr;
+colors = lines(3);
+figure(9);
+semilogy(snrANN, peoANN, 'marker', mType(1), 'linewidth', 2);
+hold on;
+semilogy(snrKNN, peoKNN, 'marker', mType(2), 'linewidth', 2);
+hold on;
+semilogy(snrT, peoT, 'marker', mType(3), 'linewidth', 2);
+hold on;
+mods = ["ANN", "KNN", "Decision Tree"];
+grid on;
+title('Decision Tree vs ANN vs KNN'); xlabel('SNR, dB'); ylabel('Probability of error');
+legend(mods, 'location', 'southeast'); legend('show');
 set(gcf, 'color', 'w'); set(groot, 'DefaultAxesFontSize', 18);

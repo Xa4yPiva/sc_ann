@@ -1,4 +1,4 @@
-function [ pRight, pRightOverall ] = ProbRightDecision( net, envelopes, thresholds, decisionsRight, SNR, expNum, lenFrame )
+function [ pRight, pRightOverall ] = ProbRightDecisionKNN( mdl, envelopes, thresholds, decisionsRight, SNR, expNum, lenFrame )
 %PROBRIGHTDECISION Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -22,11 +22,10 @@ parfor i = 1 : lenSNR
             env = awgn(envelopes(k, pos : pos+lenFrame), SNR(i), 'measured');
 %             env = awgn(envelopes(k, pos*lenFrame+1 : (pos+1)*lenFrame), SNR(i), 'measured');
             kf = KeyFeatures(env, thresholds.ampl);
-            netInputs = [abs([kf.gammaMax; kf.sigmaDP; kf.sigmaAP]); kf.P];
-            netOutputs = net(netInputs);
-            [oMax, oIdx] = max(netOutputs);
+            params = [abs([kf.gammaMax; kf.sigmaDP; kf.sigmaAP]); kf.P];
+            decision = predict(mdl, params');
 %             decision = decisionsRight(oIdx);
-            if (oIdx == k)
+            if (decision == decisionsRight(k))
                 decRightNum = decRightNum + 1;
             end
         end
